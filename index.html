@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bingo</title>
+  <style>
+    body{
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background-color: gray;
+      text-align: center;
+      padding: 50px;
+    }
+    table.darkTable {
+      font-family: "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS", sans-serif;
+      border: 2px solid #000000;
+      width: 50%;
+      height: 400px;
+      text-align: center;
+      border-collapse: collapse;
+    }
+    table.darkTable td, table.darkTable th {
+      border: 1px solid #4A4A4A;
+      padding:10px 30px 10px 30px;
+    }
+    table{
+      background-image: url(img/MAP.PNG);
+      background-size: 100% 100%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .red { background-color: red; }
+    .green { background-color: green; }
+    img{
+      height: 100px;
+      width: 100px;
+    }
+  </style>
+</head>
+<body>
+  <div id="inputy">
+    Rzędy<br>
+    <input type="number" id="rzedy" required><br>
+    Kolumny<br>
+    <input type="number" id="kolumny" required><br>
+    <button onclick="startGenerator()">Genereuj</button>
+  </div>
+  <div id="tabela"></div>
+
+<script>
+// deterministyczny RNG
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+// helpers
+function getParam(name) {
+  const url = new URL(window.location.href);
+  return url.searchParams.get(name);
+}
+function setParams(seed, rows, cols) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('seed', seed);
+  url.searchParams.set('rows', rows);
+  url.searchParams.set('cols', cols);
+  window.history.replaceState({}, '', url.toString());
+}
+
+function generator(seed, rzedy, kolumny){
+  let bloki=["iron_door","beacon","Blast_Furnace","hay","Ancient_Debris","Anvil","Armadillo_Scute","Armor_stand","Baked_Potato","Bamboo","Beetroot_Soup","Bell","Birch_Fence","Birch_Sapling","Block_of_Amethyst","Blue_Orchid","Bone_Block","Cake","Carved_Pumpkin","Chiseled_Bookshelf","Cooked_Mutton","Crafting_Table","Cyan_Bed","Dark_Prismarine","Decorated_Pot","Diamond_Axe","Dried_Kelp","Echo_Shard","Eye_of_Ender","Fermented_Spider_Eye","Firework_Rocket","Flowering_Azalea","Furnace_","Golden_Apple","Golden_Carrot","Honeycomb","Hopper","Iron_Chain","Item_Frame","Ladder","Lava_Bucket","Lectern","Light_Blue_Stained_Glass_Pane","Light_Blue_Terracotta","Lily_of_the_Valley","Lime_Stained_Glass","Mace","Magma_Block","Mangrove_sign","Mossy_Stone_Bricks","Mushroom_Stem","Music_Disc_13","Oak_Slab","Obsidian","Orange_Candle","Peony","Phantom_Membrane","Pink_Dye","Polished_Basalt","Rabbit's_Foot","Stone_Bricks","Red_Tulip","Saddle","Sculk_Catalyst","Sea_Lantern","Standing_Scaffolding","Stripped_Cherry_Log","Stripped_Dark_Oak_Log","Sugar_Cane","Totem_of_Undying","Vines","Yellow_Concrete_Powder","Yellow_Dye"];
+
+  const rng = mulberry32(Number(seed));
+
+  let tebelka="";
+  for (let i = 0; i < rzedy; i++) {
+    tebelka += "<tr>";
+    for (let j = 0; j < kolumny; j++) {
+      let liczba = Math.floor(rng() * bloki.length);
+      tebelka += '<td><img src="img/'+bloki[liczba]+'.png" width="100%"></td>';
+      bloki.splice(liczba,1);
+    }
+    tebelka += "</tr>";
+  }
+  const tabela=document.getElementById("tabela");
+  tabela.innerHTML="<table class='darkTable'>"+tebelka+"</table>";
+
+  // kolorowanie pól
+  document.querySelectorAll("#tabela table td").forEach(td => {
+    td.addEventListener("click", function(){
+      if (this.classList.contains("red")) {
+        this.classList.remove("red");
+        this.classList.add("green");
+      } else if (this.classList.contains("green")) {
+        this.classList.remove("green");
+      } else {
+        this.classList.add("red");
+      }
+    });
+  });
+
+  // link do udostępnienia
+  let link = document.createElement('p');
+  link.innerHTML = 'Link do udostępnienia: <a href="'+window.location.href+'">'+window.location.href+'</a>';
+  tabela.appendChild(link);
+}
+
+// wywoływane z przycisku – ustawia parametry w URL
+function startGenerator(){
+  const rzedy = document.getElementById("rzedy").value;
+  const kolumny = document.getElementById("kolumny").value;
+  let seed = getParam("seed");
+  if (!seed) seed = Math.floor(Math.random() * 1e9).toString();
+  setParams(seed, rzedy, kolumny);
+  generator(seed, rzedy, kolumny);
+}
+
+// automatyczne uruchomienie, jeśli są parametry w URL
+window.addEventListener("DOMContentLoaded", () => {
+  const seed = getParam("seed");
+  const rzedy = getParam("rows");
+  const kolumny = getParam("cols");
+  if (seed && rzedy && kolumny) {
+    generator(seed, rzedy, kolumny);
+  }
+});
+</script>
+</body>
+</html>
